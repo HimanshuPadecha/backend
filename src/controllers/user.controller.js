@@ -82,7 +82,7 @@ const generateAccessAndRefreshTokens = async (userId)=>{
         const accessToken = user.generateAccessToken()
         const refreshToken = user.generateRefreshToken()
         user.refreshToken = refreshToken
-        await user.save({validateBeforeSave:true})
+        await user.save({validateBeforeSave:false})
 
         return {accessToken,refreshToken}
     } catch (error) {
@@ -206,4 +206,110 @@ const generateNewAccessToken = asyncHandler(async(req,res)=>{
 
 })
 
-export {registerUser,loginUser,logoutUser,generateNewAccessToken}
+const changePassword = asyncHandler(async(req,res)=>{
+
+    const {oldPassword,newPassword} = req.body
+
+    const user = await User.findById(req.user._id)
+
+    const isPasswordCorrect = await user.isPasswordCorrect(oldPassword)
+
+    if(!isPasswordCorrect){
+        throw new ApiErrors(401,"Your provided old password is incorrect")
+    }
+
+    user.password = newPassword
+    await user.save({validateBeforeSave:false})
+
+    return res
+    .status(200)
+    .json(new ApiResponse(200,{},"Your password has been changed"))
+})
+
+const getCurrentUser = asyncHandler(async(req,res)=>{
+    return res
+    .stauts(200)
+    .json(new ApiResponse(200,req.user,"Provided the user"))
+})
+
+const updateAccountDetails = asyncHandler(async(req,res)=>{
+    const {email,userName} = req.body
+
+    if(!email && !userName){
+        throw new ApiErrors(403,"Atlease provide email or username")
+    }
+
+    const user = await User.findByIdAndUpdate(req.user._id,
+        {
+            $set:{
+                email,
+                userName
+            }
+        },
+        {new:true}
+    ).select("-password")
+
+    return res
+    .status(200)
+    .json(new ApiResponse(200,user,"email and username is changed successfully"))
+})
+
+const updateAvatar = asyncHandler(async(req,res)=>{
+    const avatarLocalPath = req.file.path
+
+    if(!avatarLocalPath){
+        throw new ApiErrors(402,"avatar is not provided ")
+    }
+
+    const avatar = await uploadOnCloudinary(avatarLocalPath)
+
+    if(!avatar){
+        throw new ApiErrors(500,"something went wrong when uploading your avatar on cloudnary")
+    }
+
+    const user = await User.findByIdAndUpdate(req.user._id,{
+        $set:{
+            avatar:avatar.url
+        }
+    },{new:true}).select("-password")
+
+    return res
+    .status(200)
+    .json(new ApiResponse(200,user,"avatar changed successfully"))
+})
+
+const updateCoverImage = asyncHandler(async(req,res)=>{
+    const coverLocalPath = req.file.path
+
+    if(!coverLocalPath){
+        throw new ApiErrors(402,"cover image is not provided ")
+    }
+
+    const coverImage = await uploadOnCloudinary(avatarLocalPath)
+
+    if(!coverImage){
+        throw new ApiErrors(500,"something went wrong when uploading your cover image on cloudnary")
+    }
+
+    const user = await User.findByIdAndUpdate(req.user._id,{
+        $set:{
+            coverImage:coverImage.url
+        }
+    },{new:true}).select("-password")
+
+    return res
+    .status(200)
+    .json(new ApiResponse(200,user,"cover Image changed successfully"))
+})
+
+export {
+    registerUser
+    ,loginUser
+    ,logoutUser
+    ,generateNewAccessToken
+    ,changePassword
+    ,getCurrentUser
+    ,updateAccountDetails
+    ,updateAvatar
+    ,updateCoverImage
+}
