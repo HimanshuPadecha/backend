@@ -3,6 +3,7 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 import { User } from "../models/user.model.js";
 import { uploadOnCloudinary } from "../utils/cloudinary.js";
 import { ApiResponse } from "../utils/apiResponse.js";
+import jwt from "jsonwebtoken"
 
 const registerUser = asyncHandler(
     async (req,res)=>{
@@ -157,4 +158,52 @@ const logoutUser = asyncHandler(async (req,res)=>{
     .clearCookie("refreshToken",options)
     .json(new ApiResponse(200,{},"Logged out successfully "))
 })
-export {registerUser,loginUser,logoutUser}
+
+const generateNewAccessToken = asyncHandler(async(req,res)=>{
+    //retrive the refresh token
+    //decode the refresh token
+    //find user based on decoded token 
+    //compare both access tokens 
+    //generate access and refresh tokens 
+    //send response
+
+    const refreshTokenFromReq = req.cookie.refreshToken || req.body.refreshToken
+
+    if(!refreshTokenFromReq){
+        throw new ApiErrors(403,"refresh token not found")
+    }
+
+    const decodedToken = jwt.verify(refreshTokenFromReq,process.env.REFRESH_TOKEN_SECRET)
+
+    const user = await User.findById(decodedToken._id).select("-password -refreshToken")
+
+    if(!user){
+        throw new ApiErrors(404,"User not found with the token")
+    }
+
+    if(user.refreshToken !== refreshTokenFromReq){
+        throw new ApiErrors(403,"refresh token from database and req did not match!!")
+    }
+
+    const {newRefreshToken,accessToken} = generateAccessAndRefreshTokens(user._id)
+
+
+    const options = {
+        httpOnly:true,
+        secure:true
+    }
+    return res
+    .status(200)
+    .cookie("refreshToken",newRefreshToken,options)
+    .cookie("accessToken",accessToken,options)
+    .json(new ApiResponse(200,
+        {
+            accessToken,
+            refreshToken:newRefreshToken
+        },
+        "New access token generated based on provided refresh token !!!"
+    ))
+
+})
+
+export {registerUser,loginUser,logoutUser,generateNewAccessToken}
