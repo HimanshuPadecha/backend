@@ -17,7 +17,7 @@ const registerUser = asyncHandler(
         //if user added successfully then give a response without password and token
 
 
-        const [email,fullName,userName,password] = req.body
+        const {email,fullName,userName,password} = req.body
 
         if(
             [email,password,fullName,userName].some(item=>item?.trim() === "")
@@ -36,7 +36,12 @@ const registerUser = asyncHandler(
         }
 
         const avatarLoacalPath = req.files?.avatar[0].path
-        const coverImageLocalPath = req.files?.coverImage[0].path
+        //const coverImageLocalPath = req.files?.coverImage[0].path
+        let coverImageLocalPath;
+        if(req.files && Array.isArray(req.files.coverImage) && req.files.coverImage.length > 0 )
+        {
+            coverImageLocalPath = req.files?.coverImage[0].path
+        }
 
         if(!avatarLoacalPath){
             throw new ApiErrors(404,"Avatar is required")
