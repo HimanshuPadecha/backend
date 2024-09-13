@@ -10,13 +10,66 @@ import {User} from "../models/user.model.js"
 const getChannelStats = asyncHandler(async (req, res) => {
     // TODO: Get the channel stats like total video views, total subscribers, total videos, total likes etc.
 
-    const {channelName} = req.params
+    const info = await Video.aggregate([
+        {
+            $match:{owner:req.user._id}
+        },
+        {
+            $lookup:{
+                from:"likes",
+                localField:"_id",
+                foreignField:"video",
+                as:"liked"
+            }
+        },
+        {
+            $addFields:{
+                likes:{
+                $size:"$liked"
+                },
+                owner:req.user.userName,
+            },
+        },
+        {
+            $group:{
+                _id:null,
+                totalLikesCount:{
+                    $sum:"$likes"
+                },
+                totalViewsCount:{
+                    $sum:"$views"
+                }
+            }
+        }
+    ])
 
-    if(!channelName){
-        throw new ApiErrors(404,"send channel name")
+    const subscribers = await Subscription.aggregate([
+       {
+            $match:{channel:req.user._id}
+       },
+       {
+            $group:{
+                _id:null,
+                subscribers:{
+                    $sum:1
+                }
+            }
+       }
+    ])
+
+    if(!subscribers || !info){
+        throw new ApiErrors(500,"failed to fetch details")
     }
 
-    const channelInfo = await Video.aggregate([])
+    const response = {
+        subscribers:subscribers[0]?.subscribers || 0,
+        likes:info[0]?.totalLikesCount || 0,
+        views:info[0]?.totalViewsCount || 0
+    }
+
+    return res
+    .status(200)
+    .json(new ApiResponse(200,response,"user's channel details fetched successfully"))
 })
 
 const getChannelVideosGlobal = asyncHandler(async (req, res) => {
