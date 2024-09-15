@@ -3,6 +3,7 @@ import {Comment} from "../models/comment.model.js"
 import {asyncHandler} from "../utils/asyncHandler.js"
 import {ApiErrors} from "../utils/apiErrors.js"
 import { ApiResponse } from "../utils/ApiResponse.js"
+import {Like} from "../models/like.model.js"
 
 const getVideoComments = asyncHandler(async (req, res) => {
     //TODO: get all comments for a video
@@ -150,6 +151,8 @@ const deleteComment = asyncHandler(async (req, res) => {
     if(!isDeleted){
         throw new ApiErrors(500,"something went wrong when deleting your comment ")
     }
+
+    await Like.deleteMany({comment:commentId})
 
     return res
     .status(200)
