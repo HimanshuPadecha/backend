@@ -29,7 +29,7 @@ const registerUser = asyncHandler(
 
         const userAlreadyExist = await User.findOne(
             {
-                $or:[{email,userName}]
+                $or:[{email},{userName}]
             }
         )
 

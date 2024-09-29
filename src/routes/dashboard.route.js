@@ -1,6 +1,6 @@
 import { Router } from "express";
-import {verifyJwt} from "../middlewares/auth.middleware"
-import { getChannelStats, getChannelVideosGlobal, getChannelVideosOur } from "../controllers/dashboard.controller";
+import {verifyJwt} from "../middlewares/auth.middleware.js"
+import { getChannelStats, getChannelVideosGlobal, getChannelVideosOur } from "../controllers/dashboard.controller.js";
 const router = Router()
 
 router.route("/s/:channelName").post(verifyJwt,getChannelVideosGlobal)
